@@ -1,12 +1,25 @@
 import { Request, Response } from 'express';
 import { StudentServices } from './student.service';
+import studentValidationSchema from './student.validation';
 
 const createStudent = async (req: Request, res: Response) => {
   try {
     const { student: studentData } = req.body;
 
-    // send data to the service
-    const result = await StudentServices.createStudentService(studentData);
+    // Data validation using Joi
+    const { error, value } = studentValidationSchema.validate(studentData);
+
+    if (error) {
+      console.log(error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch student data',
+        error,
+      });
+    }
+
+    // send validated data to the service
+    const result = await StudentServices.createStudentService(value);
 
     // Logic to create a student
     res.status(201).json({
@@ -19,7 +32,7 @@ const createStudent = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create student',
-      data: error,
+      error,
     });
   }
 };
@@ -40,7 +53,7 @@ const getAllStudent = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch student data',
-      data: error,
+      error,
     });
   }
 };
@@ -62,7 +75,7 @@ const getStudentById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get student data',
-      data: error,
+      error,
     });
   }
 };
