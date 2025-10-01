@@ -1,25 +1,17 @@
 import { Request, Response } from 'express';
 import { StudentServices } from './student.service';
-import studentValidationSchema from './student.validation';
+import { studentValidationSchema } from './student.validation';
+// import studentValidationSchema from './student.validation';
 
 const createStudent = async (req: Request, res: Response) => {
   try {
     const { student: studentData } = req.body;
 
-    // Data validation using Joi
-    const { error, value } = studentValidationSchema.validate(studentData);
-
-    if (error) {
-      console.log(error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch student data',
-        error,
-      });
-    }
+    // Data validation using Zod
+    const zodParsedData = studentValidationSchema.parse(studentData);
 
     // send validated data to the service
-    const result = await StudentServices.createStudentService(value);
+    const result = await StudentServices.createStudentService(zodParsedData);
 
     // Logic to create a student
     res.status(201).json({
@@ -27,11 +19,11 @@ const createStudent = async (req: Request, res: Response) => {
       message: 'Student created successfully',
       data: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create student',
+      message: error.message || 'Failed to create student',
       error,
     });
   }
@@ -48,11 +40,11 @@ const getAllStudent = async (req: Request, res: Response) => {
       message: 'Students fetched successfully',
       data: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch student data',
+      message: error.message || 'Failed to fetch student data',
       error,
     });
   }
@@ -70,11 +62,32 @@ const getStudentById = async (req: Request, res: Response) => {
       message: 'Student fetched successfully',
       data: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get student data',
+      message: error.message || 'Failed to get student data',
+      error,
+    });
+  }
+};
+
+const deleteStudentById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await StudentServices.deleteStudentByIdService(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Student delete successfully',
+      data: result,
+    });
+  } catch (error: any) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Something went wrong',
       error,
     });
   }
@@ -84,4 +97,5 @@ export const StudentControllers = {
   createStudent,
   getAllStudent,
   getStudentById,
+  deleteStudentById,
 };

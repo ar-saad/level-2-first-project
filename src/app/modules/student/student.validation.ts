@@ -1,82 +1,67 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
-const userNameValidationSchema = Joi.object({
-  firstName: Joi.string()
+// UserName schema
+const userNameValidationSchema = z.object({
+  firstName: z
+    .string()
     .trim()
-    .required()
-    .custom((value, helpers) => {
-      const formatted =
-        value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-      if (value !== formatted) {
-        return helpers.message(
-          `"firstName" must start with an uppercase letter followed by lowercase letters`,
-        );
-      }
-      return value;
-    }),
-  middleName: Joi.string().trim().optional(),
-  lastName: Joi.string()
+    .nonempty('First name is required')
+    .refine(
+      (val) => val === val.charAt(0).toUpperCase() + val.slice(1).toLowerCase(),
+      {
+        message:
+          'First letter must be uppercase and the rest lowercase (e.g. John)',
+      },
+    ),
+  middleName: z.string().trim().optional(),
+  lastName: z
+    .string()
     .trim()
-    .required()
-    .pattern(/^[A-Za-z]+$/)
-    .messages({
-      'string.pattern.base':
-        '"lastName" must only contain alphabetic characters',
-    }),
+    .nonempty('Last name is required')
+    .regex(/^[A-Za-z]+$/, 'Last name must contain only letters'),
 });
 
 // Guardian schema
-const guardianValidationSchema = Joi.object({
-  name: Joi.string().trim().required().messages({
-    'string.empty': 'Guardian name is required',
-  }),
-  relationship: Joi.string().trim().required().messages({
-    'string.empty': 'Relationship with guardian is required',
-  }),
-  contactNo: Joi.string().trim().required().messages({
-    'string.empty': 'Guardian contact no is required',
-  }),
-  occupation: Joi.string().trim().required().messages({
-    'string.empty': 'Guardian occupation is required',
-  }),
+const guardianValidationSchema = z.object({
+  name: z.string().trim().nonempty('Guardian name is required'),
+  relationship: z
+    .string()
+    .trim()
+    .nonempty('Relationship with guardian is required'),
+  contactNo: z.string().trim().nonempty('Guardian contact no is required'),
+  occupation: z.string().trim().nonempty('Guardian occupation is required'),
 });
 
 // Student schema
-const studentValidationSchema = Joi.object({
-  name: userNameValidationSchema.required(),
-  gender: Joi.string().valid('male', 'female', 'Other').required().messages({
-    'any.only': '"gender" must be one of [male, female, Other]',
+export const studentValidationSchema = z.object({
+  password: z.string().max(20),
+  name: userNameValidationSchema,
+  gender: z.enum(['male', 'female', 'Other'], {
+    message: 'Gender must be male, female, or Other',
   }),
-  dateOfBirth: Joi.date().required().messages({
-    'date.base': '"dateOfBirth" must be a valid date',
-  }),
-  email: Joi.string().trim().email().required().messages({
-    'string.email': '"email" must be a valid email address',
-  }),
-  contactNo: Joi.string().trim().required().messages({
-    'string.empty': '"contactNo" is required',
-  }),
-  emergencyContactNo: Joi.string().trim().required().messages({
-    'string.empty': '"emergencyContactNo" is required',
-  }),
-  bloodGroup: Joi.string()
-    .valid('A+', 'B+', 'AB+', 'O+', 'A-', 'B-', 'AB-', 'O-')
-    .optional()
-    .messages({
-      'any.only': '"bloodGroup" must be a valid blood type',
+  dateOfBirth: z.coerce
+    .date()
+    .refine((val) => val instanceof Date && !isNaN(val.getTime()), {
+      message: 'Invalid date format',
     }),
-  presentAddress: Joi.string().trim().required().messages({
-    'string.empty': '"presentAddress" is required',
-  }),
-  permanentAddress: Joi.string().trim().required().messages({
-    'string.empty': '"permanentAddress" is required',
-  }),
-  guardian: guardianValidationSchema.required(),
-  profileImg: Joi.string().uri().required().messages({
-    'string.empty': '"profileImg" is required',
-    'string.uri': '"profileImg" must be a valid URI',
-  }),
-  isActive: Joi.boolean().required(),
-});
 
-export default studentValidationSchema;
+  email: z
+    .string()
+    .trim()
+    .nonempty('Email address is required')
+    .email('Invalid email address'),
+  contactNo: z.string().trim().nonempty('Contact no is required'),
+  emergencyContactNo: z
+    .string()
+    .trim()
+    .nonempty('Emergency contact no is required'),
+  bloodGroup: z
+    .enum(['A+', 'B+', 'AB+', 'O+', 'A-', 'B-', 'AB-', 'O-'])
+    .optional(),
+  presentAddress: z.string().trim().nonempty('Present address is required'),
+  permanentAddress: z.string().trim().nonempty('Permanent address is required'),
+  guardian: guardianValidationSchema,
+  profileImg: z.string().nonempty('Profile picture is required'),
+  isActive: z.boolean().default(true),
+  isDeleted: z.boolean().default(false),
+});
